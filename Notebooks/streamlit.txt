@@ -1,0 +1,31 @@
+# installer streamlit si pas encore fait
+# pip install streamlit plotly pandas
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Charger le dataset nettoyé
+df = pd.read_csv("data/processed/netflix_cleaned.csv")
+
+# Préparer pays et genres
+df['country'] = df['country'].fillna('Unknown')
+df_countries = df.assign(country=df['country'].str.split(',')).explode('country')
+df_countries['country'] = df_countries['country'].str.strip()
+
+df_countries['listed_in'] = df_countries['listed_in'].fillna('Unknown')
+df_genres = df_countries.assign(genre=df_countries['listed_in'].str.split(',')).explode('genre')
+df_genres['genre'] = df_genres['genre'].str.strip()
+
+# Streamlit interface
+st.title("Netflix Dashboard")
+country_selected = st.selectbox("Select a country", df_genres['country'].unique())
+
+# Filtrer par pays
+df_filtered = df_genres[df_genres['country']==country_selected]
+
+# Top 5 genres
+top5 = df_filtered.groupby('genre').size().reset_index(name='count').sort_values('count', ascending=False).head(5)
+
+fig = px.bar(top5, x='genre', y='count', color='count', title=f"Top 5 Genres in {country_selected}")
+st.plotly_chart(fig)
